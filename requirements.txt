@@ -1,3 +1,4 @@
 phpserialize
 oursql
 wmflabs
+flask
