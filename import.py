@@ -8,7 +8,7 @@ import urlparse
 from wmflabs import db
 
 import_query = """
-SELECT log_params
+SELECT log_params, log_timestamp
 FROM logging
 WHERE log_type="spamblacklist"
 AND log_timestamp > ?
@@ -16,7 +16,7 @@ AND log_timestamp < ?;
 """
 
 dump_query = """
-INSERT INTO `sbl` VALUES(?, ?, ?, ?, ?);
+INSERT INTO `sbl` VALUES(?, ?, ?, ?, ?, ?);
 """
 
 conn = oursql.Connection(read_default_file=os.path.expanduser('~/.my.cnf'))
@@ -34,15 +34,16 @@ def get_all_db_names():
         yield w[0]
 
 
-def dump(dbname, urls):
+def dump(dbname, data):
     p = []
-    for url in urls:
+    for url, timestamp in data:
         p.append((
             None,
             dbname,
             get_hostname(url),
             url,
             0,
+            timestamp,
         ))
     with conn.cursor() as cur:
         cur.executemany(dump_query, p)
@@ -60,7 +61,7 @@ def import_from_db(dbname, old=0, cur=get_cur_ts()):
     for x in res:
         ser = x[0]
         data = phpserialize.loads(ser)
-        urls.append(data['4::url'])
+        urls.append((data['4::url'], x[1]))
     dump(dbname, urls)
 
 
